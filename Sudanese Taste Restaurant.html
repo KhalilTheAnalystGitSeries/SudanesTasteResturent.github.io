@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>مطعم المذاق السودانية — المتجر و الفواتير</title>
+<style>
+  /* ===== عام ===== */
+  :root{
+    --primary:#c94a1f;
+    --bg:#fffaf6;
+    --card:#fff;
+    --muted:#666;
+    --shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:"Noto Naskh Arabic",Tahoma,Arial,system-ui;
+    direction:rtl;
+    background:var(--bg);
+    color:#222;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* ===== ترويسة ===== */
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:18px 20px;
+    background:var(--card);
+    border-bottom:1px solid #eee;
+    position:sticky;
+    top:0;
+    z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{
+    width:56px;height:56px;border-radius:10px;background:var(--primary);
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.06);
+  }
+  header h1{margin:0;font-size:20px}
+  .subtitle{color:var(--muted);font-size:13px}
+
+  /* ===== زر السلة ===== */
+  .cart-btn{
+    background:#fff;border:1px solid #eee;padding:8px 12px;border-radius:10px;display:flex;gap:8px;align-items:center;cursor:pointer;box-shadow:var(--shadow)
+  }
+  .cart-count{background:var(--primary);color:#fff;padding:4px 8px;border-radius:999px;font-weight:700}
+
+  /* ===== الصفحة ===== */
+  main{max-width:1100px;margin:18px auto;padding:0 18px}
+  p.lead{color:var(--muted);margin-top:8px}
+
+  /* ===== تفاصيل/قوائم الأصناف ===== */
+  details{background:var(--card);border-radius:10px;padding:8px;margin-bottom:14px;box-shadow:var(--shadow)}
+  summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:8px 12px;font-weight:700;font-size:16px}
+  .items-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;padding:10px}
+  .item{background:#fff;border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;box-shadow:0 6px 18px rgba(0,0,0,0.03)}
+  .item img{width:100%;height:150px;object-fit:cover;border-radius:8px}
+  .item h4{margin:0;font-size:16px}
+  .price{color:var(--primary);font-weight:800}
+  .controls{display:flex;gap:8px;align-items:center;margin-top:auto}
+  .qty{display:flex;align-items:center;gap:6px;border:1px solid #eee;padding:4px;border-radius:8px}
+  .qty button{background:#f6f6f6;border:1px solid #eee;padding:4px 8px;border-radius:6px;cursor:pointer}
+  .btn-add{background:var(--primary);color:#fff;border:0;padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:700}
+
+  /* ===== footer ===== */
+  footer{max-width:1100px;margin:30px auto 60px;padding:18px;text-align:center;color:var(--muted)}
+  .bank{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:10px;flex-wrap:wrap}
+  .bank img{width:96px;height:auto}
+
+  /* ===== مودال السلة ===== */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:999}
+  .overlay.open{display:flex}
+  .modal{background:#fff;width:100%;max-width:760px;border-radius:12px;padding:16px;max-height:90vh;overflow:auto}
+  .cart-list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+  .cart-row{display:flex;gap:10px;align-items:center;border-radius:8px;padding:8px;background:#fafafa}
+  .cart-row img{width:84px;height:64px;object-fit:cover;border-radius:6px}
+  .cart-meta{flex:1}
+  .cart-actions{display:flex;gap:8px;align-items:center}
+  .checkout{margin-top:12px;border-top:1px solid #eee;padding-top:12px}
+  .hidden{display:none}
+  .invoice-preview{background:#fff;padding:10px;border-radius:8px;border:1px dashed #eee;margin-top:8px}
+
+  /* responsive */
+  @media (max-width:640px){
+    .items-grid{grid-template-columns:repeat(1,1fr)}
+    header{flex-direction:column;align-items:stretch;gap:8px}
+  }
+
+  /* =====-toast simple style===== */
+  #__toast{transition:opacity .25s ease-in-out}
+</style>
+</head>
+<body>
+
+<!-- ========== HEADER ========== -->
+<header>
+  <div class="brand">
+    <div class="logo">م</div>
+    <div>
+      <h1>مطعم المذاق السودانية</h1>
+      <div class="subtitle">نكهات سودانية أصيلة — الخرطوم، الكلاكلة</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;align-items:center">
+    <div style="text-align:left;color:var(--muted);font-size:13px">
+      📞 +249 117442625<br>✉️ wlydmyrghny51@gmail.com
+    </div>
+    <button id="openCart" class="cart-btn" aria-label="فتح السلة">
+      <span>السلة</span>
+      <span id="cartCount" class="cart-count">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- ========== MAIN ========== -->
+<main>
+  <p class="lead">اختر من القوائم أدناه. لكل صنف صورة وسعر (ج.س) والكمية — أضف ما تريد ثم اضغط عرض السلة لإتمام الطلب.</p>
+
+  <section>
+    <div id="categories"></div>
+  </section>
+</main>
+
+<!-- ========== CART / CHECKOUT MODAL ========== -->
+<div id="overlay" class="overlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <button id="closeOverlay" style="float:left;border:0;background:none;font-size:18px;cursor:pointer">✕ إغلاق</button>
+    <h2>سلة الطلب</h2>
+
+    <div id="cartList" class="cart-list"></div>
+
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="font-weight:800">إجمالي العناصر: <span id="cartItems">0</span></div>
+      <div style="font-weight:900;font-size:18px">المجموع: <span id="cartTotal">0</span> ج.س</div>
+    </div>
+
+    <div class="checkout">
+      <h3>بيانات الزبون و الدفع (إجباري رفع إشعار الدفع)</h3>
+      <form id="checkoutForm">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input id="cName" placeholder="الاسم الكامل" required style="flex:1;padding:8px;border-radius:6px;border:1px solid #eee">
+          <input id="cPhone" placeholder="رقم الجوال" required style="flex:1;padding:8px;border-radius:6px;border:1px solid #eee">
+        </div>
+
+        <textarea id="cAddress" placeholder="العنوان/تعليمات (مثلاً: الخرطوم - الكلاكلة)" style="width:100%;margin-top:8px;padding:8px;border-radius:6px;border:1px solid #eee"></textarea>
+
+        <!-- تحويل الإيصال من الكود المحسّن: الآن إجباري -->
+        <div style="margin-top:8px">
+          <label for="receiptFile" style="font-size:13px;color:var(--muted);font-weight:700">تحميل إيصال الدفع (صورة) — <span style="color:#c94a1f">إجباري</span></label><br>
+          <input id="receiptFile" type="file" accept="image/*" style="margin-top:6px" required>
+          <div id="receiptPreview" style="margin-top:8px"></div>
+        </div>
+
+        <div id="paymentInfo" style="margin-top:12px;background:#fafafa;padding:10px;border-radius:8px">
+          <strong>طريقة الدفع:</strong>
+          <select id="checkoutPaymentMethod" required style="width:100%;margin-top:8px;padding:8px;border-radius:6px;border:1px solid #eee">
+            <option value="">-- اختر طريقة الدفع --</option>
+            <option value="تحويل بنكي">🏦 تحويل بنكي</option>
+            <option value="محفظة الكترونية">📱 محفظة إلكترونية</option>
+            <option value="نقداً عند التسليم">💵 نقداً عند التسليم</option>
+          </select>
+
+          <div style="color:var(--muted);margin-top:8px;font-size:13px">
+            ملاحظة: بعد الضغط على "مراجعة وإرسال الطلب" ستفتح نافذة الفاتورة للطباعة. بعد الطباعة اضغط "فتح واتساب" أو انتظر الضغط عليه ليتم فتح محادثة واتساب بصيغة جاهزة — ثم قم بإرفاق صورة الإيصال (التي قمت بتحميلها) وإرسال الفاتورة يدوياً في واتساب.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button type="submit" class="btn-add" style="flex:1">مراجعة وإرسال الطلب</button>
+          <button type="button" id="clearCart" style="flex:1;background:#eee;border:0;border-radius:8px">تفريغ السلة</button>
+        </div>
+      </form>
+
+      <div id="invoicePreview" class="invoice-preview hidden"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========== FOOTER ========== -->
+<footer>
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="font-weight:800;margin-bottom:6px">نبذة عن المطعم</div>
+    <div style="color:var(--muted);margin-bottom:12px">
+      مطعم المذاق السودانية يقدم أطباقاً سودانية أصيلة ومشويات وفطائر وعصائر طازجة. نستخدم مكونات طازجة ونلتزم بمعايير النظافة وجودة التحضير.
+    </div>
+
+    <div style="font-weight:800">بيانات التواصل</div>
+    <div style="color:var(--muted);margin-top:6px">
+      الهاتف: +249 117442625 &nbsp; | &nbsp; البريد: wlydmyrghny51@gmail.com &nbsp; | &nbsp; العنوان: الخرطوم - الكلاكلة
+    </div>
+
+    <div class="bank" style="margin-top:14px">
+     <img src="https://play-lh.googleusercontent.com/6ycub52gYLRnYtuE0t-1UC4KsHGaXR84ol0RoezDg7U_ZFkSmSrtig9170O1TXZJQg" alt="صورة من Googleusercontent" style="width:100px; height:auto; border:1px solid #ccc; border-radius:8px;"> 
+      <div style="text-align:right">
+        <div style="font-weight:800">الدفع عبر بنكك</div>
+        <div style="color:var(--muted)">رقم الحساب: <strong>9330039</strong></div>
+      </div>
+    </div>
+
+    <div style="color:var(--muted);margin-top:12px">© 2025 مطعم المذاق السودانية</div>
+  </div>
+</footer>
+
+<!-- ========== SCRIPT شامل وموحد للمشروع ========== -->
+<script>
+/* ============================================================
+   الكود أدناه يجمع:
+   - إنشاء القوائم الديناميكية من "catalog"
+   - إدارة السلة (add/remove/change)
+   - معاينة الإيصال المرفوع (مطلوب)
+   - إنشاء نافذة الفاتورة التي تحتوي على بيانات العميل + صورة الإيصال
+   - زر الطباعة في نافذة الفاتورة يقوم بالـ print() ثم يفتح واتساب برسالة جاهزة
+   - إعادة تعيين السلة بعد الإرسال
+   ============================================================ */
+
+/* ======== دوال مساعدة بسيطة ======== */
+function escapeHtml(str){
+  if(!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showToast(msg){
+  let t = document.getElementById('__toast');
+  if(!t){
+    t = document.createElement('div'); t.id='__toast';
+    t.style.position='fixed'; t.style.bottom='18px'; t.style.left='50%'; t.style.transform='translateX(-50%)';
+    t.style.background='rgba(0,0,0,0.8)'; t.style.color='#fff'; t.style.padding='10px 14px';
+    t.style.borderRadius='10px'; t.style.zIndex=9999; t.style.opacity='0';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>{ t.style.opacity='0'; }, 2200);
+}
+
+/* ====== بيانات الأصناف (catalog) ====== */
+/* (استخدمت نفس البيانات التي زودتني بها — يمكنك تعديل أو إضافة أصناف هنا) */
+const catalog = [
+  {
+    id: 'grill',
+    title: 'قسم المشويات',
+    items: [{id:'grill1', name:'كباب لحم', price:5500, img:'https://i.ytimg.com/vi/2L5jeZb9g4c/maxresdefault.jpg'},
+     {id:'grill2', name:'كباب دجاج', price:5000, img:'https://zfloos-production-storage.s3.eu-central-1.amazonaws.com/public/upload/companies/2366/products/1655313988_62aa1644d6325.jpg'},
+      {id:'grill3', name:'ريش غنم', price:5000, img:'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=60&auto=format&fit=crop'},
+      {id:'grill3b', name:'سجق لحم', price:4800, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ-gD5K0r81S8DSwU26Zo8dn0hwfz10qFMYzyS89r_KPxVv83RuVLid1DIM&s=10'},
+      {id:'grill4', name:'دجاج مشوي', price:6000, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYgyxFwPzRX_oIHrO2sgv0Lw9JnWwIDJtT2nzvHxFcuCxKA0_jMYK1-I4&s=10'},
+      {id:'grill6', name:'برغر مشوي', price:2800, img:'https://images.unsplash.com/photo-1550547660-d9450f859349?w=800&q=60&auto=format&fit=crop'},
+      {id:'grill5', name:'كفتة مشوية', price:5200, img:'https://v-genius.fatafeat.com/storage/attachments/21/Fatafeat-26Nov-article2_611791.png/r/800/Fatafeat-26Nov-article2_611791.png'},
+      {id:'grill6b', name:'شيش طاوق', price:5600, img:'https://static.webteb.net/images/content/ramadanrecipe_recipe_141_360.jpg'},
+      {id:'grill7', name:'ضلع لحم', price:7000, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUdYigwB9Ec7ifWJltl6v-dpqh86He-qklMkSprC5ovw&s=10'},
+      {id:'grill8', name:'سلمون مشوي', price:7500, img:'https://png.pngtree.com/png-clipart/20250206/original/pngtree-grilled-salmon-fillet-with-fresh-vegetables-on-white-plate-png-image_20344973.png'},
+    ]
+  },
+  {
+    id: 'pies',
+    title: 'قسم الفطائر',
+    items: [
+      {id:'pie1', name:'فطيرة جبنة', price:3500, img:'https://images.arla.com/recordid/21444B24-CACB-481C-AC18C536BE6C93B7/puffy-cheese-and-olive-pastry.jpg?width=768&height=400&mode=crop&format=webp'},
+      {id:'pie2', name:'فطيرة لحم', price:3700, img:'https://cdn.arabsstock.com/uploads/images/218956/pieces-of-hot-meat-pie-thumbnail-218956.webp'},
+      {id:'pie3', name:'فطيرة سبانخ', price:3600, img:'https://cdn.al-ain.com/lg/images/2018/4/24/47-140459-177-203614-15a9ec37e9fd1d_700x400.jpeg'},
+      {id:'pie4', name:'فطيرة دجاج', price:3800, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMistnuPkmCFrb6YEZcIEThax6M6rtPdiC02v4NTY9YA&s=10'},
+      {id:'pie5', name:'فطيرة بيتزا', price:4000, img:'https://cdn.arabsstock.com/uploads/images/36511/fresh-delicious-pizza-pie-vegetable-preview-36511.jpg'},
+      {id:'pie6', name:'فطيرة لبنة', price:3400, img:'https://i.ytimg.com/vi/CyQRSYjf06U/sddefault.jpg'},
+      {id:'pie7', name:'فطيرة عسل', price:3200, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQSGL8TAooFZbEH1Ah8G_QKSuz8M095JtVCxN7gNh6s9yLyaQXT7ErayB8&s=10'},
+      {id:'pie8', name:'فطيرة شوكولاتة', price:4200, img:'https://img.youm7.com/ArticleImgs/2019/7/10/240776-8.jpg'},
+      {id:'pie9', name:'فطيرة خضار', price:3700, img:'https://i.ytimg.com/vi/4SNxUWmdGdg/sddefault.jpg'},
+      {id:'pie10', name:'فطيرة تونة', price:3900, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTwcEbwY_w-VWkTIp32vfBomrNrtyd0HkxMkBX7q4egT1uqEqtZQn5onaH-&s=10'},
+    ]
+  },
+  {
+    id: 'juices',
+    title: 'قسم العصائر',
+    items: [
+      {id:'juice1', name:'عصير برتقال', price:2500, img:'https://bmzag.com/cdn/shop/files/2021_7_6_2_9_50_937.jpg?v=1707299214'},
+      {id:'juice2', name:'عصير مانجو', price:2700, img:'https://media-cdn.tripadvisor.com/media/photo-p/1b/6e/b9/58/mango-juice.jpg'},
+      {id:'juice3', name:'عصير جوافة', price:2600, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRHsbDql-m6Yl_iyZEYkqTGmO8JF6A7msUHj07V0t50zBH8eEJEF83jtQqI&s=10'},
+      {id:'juice4', name:'عصير ليمون', price:2400, img:'https://www.justfood.tv/big/4mJFR333.1.2020.jpg'},
+      {id:'juice5', name:'عصير تفاح', price:2600, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSNTQbm9SyQgeTClbuLbUqip7FVQ-ztiPI-GD5lZXeX6tNvmlwJkXMd3yc&s=10'},
+      {id:'juice6', name:'عصير كيوي ', price:2800, img:'https://modo3.com/thumbs/fit630x300/246034/1562257915/%D8%B7%D8%B1%D9%8A%D9%82%D8%A9_%D8%B9%D9%85%D9%84_%D8%B9%D8%B5%D9%8A%D8%B1_%D9%83%D9%8A%D9%88%D9%8A_%D8%A8%D8%A7%D9%84%D8%AD%D9%84%D9%8A%D8%A8.jpg'},
+      {id:'juice7', name:'عصير فراولة ', price:2900, img:'https://png.pngtree.com/thumb_back/fw800/background/20240419/pngtree-smoothie-with-strawberries-and-milk-image_15663375.jpg'},
+      {id:'juice8', name:'عصير بطيخ', price:2500, img:'https://static.hiamag.com/2022-08/%D8%B7%D8%B1%D9%8A%D9%82%D8%A9%20%D8%B9%D9%85%D9%84%20%D8%B9%D8%B5%D9%8A%D8%B1%20%D8%A7%D9%84%D8%A8%D8%B7%D9%8A%D8%AE%20%D8%A8%D8%A7%D9%84%D8%A3%D9%84%D9%88%D9%81%D9%8A%D8%B1%D8%A7.jpg'},
+      {id:'juice9', name:'عصير أناناس', price:2700, img:'https://cdn.arabsstock.com/uploads/images/306152/delicious-cold-natural-drinks-saudi-thumbnail-306152.webp'},
+      {id:'juice10', name:'عصير موز بالحليب', price:2800, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRxyY-XwJ562gAuo9d-OO1EqKdBQixWcOgjU4kf-d8vGgokf-MHRyRMxfQ&s=10'},
+    ]
+  },
+  {
+    id: 'sudan',
+    title: 'قسم المأكولات الشعبية السودانية',
+    items: [
+      {id:'sudan1', name:'كسرة و ملاح', price:4500, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRxg_Yd5MQcmiFNgDYWMpriFMxt-ERpmy_k_v-m_0ccOpvvW5O8IFXU5J0&s=10'},
+      {id:'sudan2', name:'عصيدة بملاح ويكة', price:4700, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTkkSKAEA068M0f2Nxv4LnOwWYOARHazM7yVQ1IyQQpydhTgLJVqtG5mkHC&s=10'},
+      {id:'sudan3', name:'فتة سودانية', price:4800, img:'https://sudafax.com/wp-content/uploads/2022/02/%D9%81%D8%AA%D8%A9-%D9%81%D9%88%D9%84-_-%D8%A8%D9%88%D8%B4-_-%D9%81%D8%AA%D9%87-390x220.jpg'},
+      {id:'sudan4', name:'قراصة بالدمعة', price:4600, img:'https://pbs.twimg.com/media/ET26IEzWoAIA_op.png'},
+      {id:'sudan5', name:'قراصة بالزبادي', price:4700, img:'https://i.ytimg.com/vi/a_skmdt42SY/sddefault.jpg'},
+      {id:'sudan6', name:'قراصة بالملوحة', price:4900, img:'https://i.ytimg.com/vi/wOMGPHYQtOo/hq720.jpg?sqp=-oaymwEhCK4FEIIDSFryq4qpAxMIARUAAAAAGAElAADIQj0AgKJD&rs=AOn4CLBcFaMn1RoJG10qO-hfvy7En39zTA'},
+      {id:'sudan7', name:'ملاح روب', price:4500, img:'https://arabicook.com/wp-content/uploads/2023/04/or-13.jpeg'},
+      {id:'sudan9', name:'كسرة بالطماطم', price:4400, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0TXGlGQDMnATLyUyOlzuvvXickQkcwE15OYnuJua-b7uYK04f0KgbQt0&s=10'},
+      {id:'sudan10', name:'وجبة عدس', price:4300, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3wORSI7I0_LPaZnFQTDLxVaMsQgO05YxW-tAKgJ5yLIBLGDJstI7l1w&s=10'},
+      {id:'sudan8', name:'ملاح بامية', price:4600, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPyT56P-Hnl_UQk7qbFN8llbFuYZ1exmWsrDa_8YHtwMLjz4r3hTruhWFn&s=10'},
+    ]
+  }
+];
+
+/* ===== حالة السلة ===== */
+let cart = {}; // key = itemId -> {id,name,price,img,qty}
+
+/* ===== عناصر DOM المهمة ===== */
+const categoriesEl = document.getElementById('categories');
+const cartCountEl = document.getElementById('cartCount');
+const cartListEl = document.getElementById('cartList');
+const cartTotalEl = document.getElementById('cartTotal');
+const cartItemsEl = document.getElementById('cartItems');
+const paymentInfoEl = document.getElementById('paymentInfo');
+const invoicePreviewEl = document.getElementById('invoicePreview');
+const receiptFileInput = document.getElementById('receiptFile');
+const receiptPreviewDiv = document.getElementById('receiptPreview');
+
+/* ===== إنشاء القوائم الديناميكية من الكاتالوج ===== */
+catalog.forEach(cat => {
+  const d = document.createElement('details');
+  d.innerHTML = `
+    <summary>
+      <span>${cat.title}</span>
+      <span style="color:var(--muted);font-weight:600">${cat.items.length} صنف</span>
+    </summary>
+    <div class="items-grid"></div>
+  `;
+  const grid = d.querySelector('.items-grid');
+
+  cat.items.forEach(it => {
+    const itEl = document.createElement('div');
+    itEl.className = 'item';
+    itEl.innerHTML = `
+      <img src="${it.img}" alt="${escapeHtml(it.name)}" onerror="this.onerror=null;this.src='https://via.placeholder.com/800x600?text=صورة'">
+      <h4>${escapeHtml(it.name)}</h4>
+      <div class="price">${it.price} ج.س</div>
+      <div class="controls">
+        <div class="qty" aria-label="كمية">
+          <button data-op="dec">−</button>
+          <div style="min-width:28px;text-align:center" data-qty>1</div>
+          <button data-op="inc">+</button>
+        </div>
+        <button class="btn-add" data-add>أضف</button>
+      </div>
+    `;
+    const qtyEl = itEl.querySelector('[data-qty]');
+    itEl.querySelector('[data-op="inc"]').addEventListener('click', ()=> {
+      qtyEl.textContent = Number(qtyEl.textContent) + 1;
+    });
+    itEl.querySelector('[data-op="dec"]').addEventListener('click', ()=> {
+      const n = Number(qtyEl.textContent);
+      if(n>1) qtyEl.textContent = n-1;
+    });
+    itEl.querySelector('[data-add]').addEventListener('click', ()=> {
+      const qty = Number(qtyEl.textContent);
+      addToCart({id: it.id, name: it.name, price: it.price, img: it.img}, qty);
+      qtyEl.textContent = 1;
+    });
+
+    grid.appendChild(itEl);
+  });
+
+  categoriesEl.appendChild(d);
+});
+
+/* ===== دوال السلة ===== */
+function addToCart(product, qty=1){
+  if(!cart[product.id]) cart[product.id] = {...product, qty:0};
+  cart[product.id].qty += qty;
+  updateCartUI();
+  showToast(`${product.name} أضيف إلى السلة (${qty})`);
+}
+
+function updateCartUI(){
+  const totalQty = Object.values(cart).reduce((s,i)=>s+i.qty,0);
+  cartCountEl.textContent = totalQty;
+
+  cartListEl.innerHTML = '';
+  let sum = 0;
+  for(const key in cart){
+    const it = cart[key];
+    sum += it.price * it.qty;
+    const row = document.createElement('div');
+    row.className = 'cart-row';
+    row.innerHTML = `
+      <img src="${it.img}" alt="${escapeHtml(it.name)}" onerror="this.onerror=null;this.src='https://via.placeholder.com/200x150?text=صورة'">
+      <div class="cart-meta">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${escapeHtml(it.name)}</strong>
+          <span style="font-weight:800">${it.price} ج.س</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <div class="cart-actions">
+            <button data-op="dec">−</button>
+            <div style="padding:6px 10px;border-radius:6px;border:1px solid #eee">${it.qty}</div>
+            <button data-op="inc">+</button>
+          </div>
+          <button data-remove style="background:transparent;border:0;color:#d00;cursor:pointer">حذف</button>
+        </div>
+      </div>
+    `;
+    row.querySelector('[data-op="inc"]').addEventListener('click', ()=> { changeQty(it.id, +1); });
+    row.querySelector('[data-op="dec"]').addEventListener('click', ()=> { changeQty(it.id, -1); });
+    row.querySelector('[data-remove]').addEventListener('click', ()=> { removeItem(it.id); });
+
+    cartListEl.appendChild(row);
+  }
+
+  cartTotalEl.textContent = sum.toLocaleString('en-US');
+  cartItemsEl.textContent = totalQty;
+
+  if(totalQty>0) {
+    invoicePreviewEl.classList.remove('hidden');
+    invoicePreviewEl.innerHTML = generateInvoiceHtmlPreview();
+  } else {
+    invoicePreviewEl.classList.add('hidden');
+    invoicePreviewEl.innerHTML = '';
+  }
+}
+
+function changeQty(id, delta){
+  if(!cart[id]) return;
+  cart[id].qty += delta;
+  if(cart[id].qty <= 0) delete cart[id];
+  updateCartUI();
+}
+function removeItem(id){
+  delete cart[id];
+  updateCartUI();
+}
+
+/* ===== فتح/إغلاق المودال ===== */
+const overlay = document.getElementById('overlay');
+document.getElementById('openCart').addEventListener('click', ()=> {
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden','false');
+  updateCartUI();
+});
+document.getElementById('closeOverlay').addEventListener('click', ()=> {
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden','true');
+});
+document.getElementById('clearCart').addEventListener('click', ()=> {
+  if(confirm('هل تريد تفريغ السلة؟')){ cart = {}; updateCartUI(); }
+});
+
+/* ===== معاينة الإيصال عند التحميل (مطلوب) ===== */
+let currentReceiptDataUrl = null;
+receiptFileInput.addEventListener('change', (ev)=>{
+  const f = ev.target.files[0];
+  receiptPreviewDiv.innerHTML = '';
+  currentReceiptDataUrl = null;
+  if(f && f.type.startsWith('image/')){
+    const img = document.createElement('img');
+    img.style.maxWidth = '160px';
+    img.style.borderRadius = '8px';
+    img.style.border = '1px solid #eee';
+    img.style.display = 'block';
+    img.style.marginTop = '6px';
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      img.src = reader.result;
+      receiptPreviewDiv.appendChild(img);
+      currentReceiptDataUrl = reader.result; // حفظ DataURL لاستخدامه في نافذة الفاتورة
+    };
+    reader.readAsDataURL(f);
+  } else {
+    // إن لم يكن ملف صورة أو لم يُختَر
+    receiptPreviewDiv.innerHTML = '<div style="color:#c94a1f;font-size:13px">الملف غير مدعوم - الرجاء اختيار صورة.</div>';
+  }
+});
+
+/* ===== معاينة فاتورة صغيرة داخل المودال ===== */
+function generateInvoiceHtmlPreview(){
+  const items = Object.values(cart);
+  if(items.length === 0) return '';
+  const rows = items.map(i => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0"><div>${escapeHtml(i.name)} × ${i.qty}</div><div>${i.price * i.qty} ج.س</div></div>`).join('');
+  const total = items.reduce((s,i)=>s + i.price*i.qty,0);
+  return `<div style="font-weight:800;margin-bottom:6px">فاتورة سريعة</div>${rows}<div style="text-align:left;font-weight:900;margin-top:8px">${total} ج.س</div>`;
+}
+
+/* ===== حدث إرسال موحد: إنشاء فاتورة قابلة للطباعة + فتح واتساب بعد الطباعة ===== */
+document.getElementById('checkoutForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+
+  if(Object.keys(cart).length === 0){ alert('السلة فارغة'); return; }
+
+  const name = document.getElementById('cName').value.trim();
+  const phone = document.getElementById('cPhone').value.trim();
+  const address = document.getElementById('cAddress').value.trim() || 'غير محدد';
+  const paymentMethod = document.getElementById('checkoutPaymentMethod').value.trim();
+  const receiptFile = document.getElementById('receiptFile').files[0];
+
+  if(!name || !phone){
+    alert('الرجاء إدخال الاسم ورقم الجوال');
+    return;
+  }
+  if(!paymentMethod){
+    alert('الرجاء اختيار طريقة الدفع');
+    return;
+  }
+  // تحقق أن المستخدم رفع إيصال (إجباري)
+  if(!receiptFile){
+    alert('الرجاء رفع إشعار الدفع (صورة) قبل المراجعة.');
+    return;
+  }
+  if(!currentReceiptDataUrl){
+    alert('جارٍ تجهيز معاينة الإيصال — انتظر قليلاً ثم حاول مجدداً.');
+    return;
+  }
+
+  // إعداد بيانات الفاتورة
+  const items = Object.values(cart).map(i=>({id:i.id,name:i.name,price:i.price,qty:i.qty}));
+  const total = items.reduce((s,i)=>s + i.price*i.qty,0);
+  const createdAt = new Date();
+  const createdAtStr = createdAt.toLocaleString('ar-EG', { dateStyle: 'full', timeStyle: 'short' });
+
+  // إنشاء نافذة الفاتورة (ستحوي صورة الإيصال المرفوعة — DataURL)
+  const invoiceWindow = window.open('', '_blank');
+  const receiptDataURLforInvoice = currentReceiptDataUrl; // Data URL تم إنشاؤه مسبقًا
+  const shopNumber = '249905309303';
+
+  // نص واتساب مبدئي (سيظهر عند الضغط على زر "طباعة ثم فتح واتساب")
+  const whatsappMsg = encodeURIComponent(
+    `🧾 فاتورة - مطعم المذاق السودانية\n\n` +
+    `الاسم: ${name}\n` +
+    `الهاتف: ${phone}\n` +
+    `العنوان: ${address}\n` +
+    `الوقت: ${createdAtStr}\n\n` +
+    `الأصناف:\n` +
+    items.map(i => `- ${i.name} × ${i.qty} = ${i.price * i.qty} ج.س`).join('\n') +
+    `\n\nالإجمالي: ${total} ج.س\n` +
+    `طريقة الدفع: ${paymentMethod}\n\n` +
+    `المرجو إرسال إيصال الدفع (صورة) والفاتورة في المحادثة لتأكيد الطلب. شكراً لكم!`
+  );
+
+  invoiceWindow.document.write(`
+    <!doctype html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="utf-8">
+      <title>فاتورة الطلب — مطعم المذاق السودانية</title>
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <style>
+        body{font-family:"Noto Naskh Arabic",Tahoma,Arial;direction:rtl;padding:20px;color:#222;background:#fff}
+        .wrap{max-width:720px;margin:0 auto;background:#fff;padding:18px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.06)}
+        h1{color:#c94a1f;margin:0 0 8px 0}
+        p{margin:6px 0;color:#333}
+        table{width:100%;border-collapse:collapse;margin-top:12px}
+        th,td{border:1px solid #ddd;padding:8px;text-align:center}
+        th{background:#f6f6f6}
+        .total{font-weight:800;color:#c94a1f;margin-top:12px;text-align:left;font-size:18px}
+        .meta{color:#666;font-size:14px;margin-top:6px}
+        .actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+        .btn{background:#c94a1f;color:#fff;padding:10px 14px;border-radius:8px;border:0;cursor:pointer;font-weight:700}
+        .btn-print{background:#2b2b2b}
+        img.receipt{max-width:280px;border-radius:8px;margin-top:10px;border:1px solid #ddd;display:block}
+        @media print {
+          .actions{display:none}
+        }
+      </style>
+    </head>
+    <body>
+      <div class="wrap">
+        <h1>فاتورة الطلب</h1>
+        <p><strong>المطعم:</strong> مطعم المذاق السودانية</p>
+        <p><strong>الاسم:</strong> ${escapeHtml(name)}<br>
+           <strong>الهاتف:</strong> ${escapeHtml(phone)}<br>
+           <strong>العنوان:</strong> ${escapeHtml(address)}</p>
+        <p class="meta"><strong>الوقت:</strong> ${escapeHtml(createdAtStr)}<br>
+           <strong>طريقة الدفع:</strong> ${escapeHtml(paymentMethod)}</p>
+
+        <table>
+          <thead>
+            <tr><th>الصنف</th><th>الكمية</th><th>سعر الوحدة (ج.س)</th><th>الإجمالي (ج.س)</th></tr>
+          </thead>
+          <tbody>
+            ${items.map(i=>`<tr>
+              <td>${escapeHtml(i.name)}</td>
+              <td>${i.qty}</td>
+              <td>${i.price}</td>
+              <td>${i.price * i.qty}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+
+        <div class="total">الإجمالي الكلي: ${total} ج.س</div>
+
+        <h3 style="margin-top:12px">📸 إشعار الدفع (المرفق)</h3>
+        ${receiptDataURLforInvoice ? `<img class="receipt" src="${receiptDataURLforInvoice}" alt="إشعار الدفع">` : '<div style="color:#c94a1f">لا توجد معاينة للإيصال</div>'}
+
+        <div class="actions">
+          <button class="btn btn-print" id="printBtn">🖨️ طباعة ثم فتح واتساب</button>
+          <button class="btn" id="closeBtn">✕ إغلاق</button>
+        </div>
+
+        <p style="color:#666;margin-top:10px">ملاحظة: بعد الطباعة، سيتم فتح محادثة واتساب تلقائياً برسالة جاهزة — الرجاء إرفاق صورة الإيصال والفاتورة ثم الإرسال يدوياً لتأكيد الطلب.</p>
+      </div>
+
+      <script>
+        (function(){
+          const shopNumber = '${shopNumber}';
+          const whatsappMsg = '${whatsappMsg}';
+
+          function openWhatsApp(){
+            const url = 'https://wa.me/' + shopNumber + '?text=' + whatsappMsg;
+            window.open(url, '_blank');
+          }
+
+          document.getElementById('printBtn').addEventListener('click', function(){
+            // طباعة، ثم فتح واتساب
+            window.print();
+            // فتح واتساب بعد تأخير قصير لترك متسع لطابعة المتصفح
+            setTimeout(openWhatsApp, 500);
+          });
+
+          document.getElementById('closeBtn').addEventListener('click', function(){
+            window.close();
+          });
+
+          // إن أردت، يمكنك أيضاً فتح واتساب تلقائيًا عند فتح النافذة (غير مفعّل)
+        })();
+      <\/script>
+    </body>
+    </html>
+  `);
+  invoiceWindow.document.close();
+
+  // إعلام المستخدم
+  alert('✅ تم فتح نافذة الفاتورة — بعد الطباعة يرجى إرسال صورة الإيصال والفاتورة عبر واتساب لتأكيد الطلب.');
+
+  // إعادة تعيين السلة والحقول محلياً (بعد فترة قصيرة إتاحة للمستخدم)
+  // لاحظ: إن أردت الاحتفاظ بسجل محلي للفواتير يمكن حفظه في localStorage هنا.
+  setTimeout(()=>{ cart = {}; updateCartUI(); overlay.classList.remove('open'); }, 500);
+});
+
+/* ===== init ===== */
+updateCartUI();
+
+</script>
+
+</body>
+</html>
